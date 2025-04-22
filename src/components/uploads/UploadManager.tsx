@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { IFileUpload } from '@/contexts/AppContext';
 
 const UploadManager: React.FC = () => {
-  const { filingType, uploadedFiles, addFile, removeFile, updateComplianceScore } = useAppContext();
+  const { filingType, uploadedFiles, addFile, removeFile, complianceScore, updateComplianceScore } = useAppContext();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,11 +105,9 @@ const UploadManager: React.FC = () => {
       fileInputRef.current.value = '';
     }
 
-    // Update compliance score
-    updateComplianceScore(prevScore => {
-      const newScore = Math.min(prevScore + 10, 100);
-      return newScore;
-    });
+    // Update compliance score - FIX: Pass a direct number instead of a function
+    const newScore = Math.min(complianceScore + 10, 100);
+    updateComplianceScore(newScore);
   };
 
   const handleDeleteFile = (id: string) => {
@@ -120,11 +118,9 @@ const UploadManager: React.FC = () => {
       description: "The file has been removed successfully",
     });
 
-    // Update compliance score
-    updateComplianceScore(prevScore => {
-      const newScore = Math.max(prevScore - 5, 0);
-      return newScore;
-    });
+    // Update compliance score - FIX: Pass a direct number instead of a function
+    const newScore = Math.max(complianceScore - 5, 0);
+    updateComplianceScore(newScore);
   };
 
   const formatFileSize = (bytes: number): string => {
