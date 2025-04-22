@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext } from '@/contexts/AppContext';
 import { ArrowLeft, FileCheck, Upload, Shield, Calendar, File } from 'lucide-react';
 import { 
@@ -87,10 +87,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     {navigationItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild>
-                          <a href={item.url} className="flex items-center gap-2">
+                          <Link to={item.url} className="flex items-center gap-2">
                             <item.icon className="h-4 w-4" />
                             <span>{item.title}</span>
-                          </a>
+                          </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
@@ -134,3 +134,4 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 };
 
 export default AppLayout;
+
