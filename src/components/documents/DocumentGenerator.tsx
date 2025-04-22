@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { FileCheck, Download, ArrowRight, FileText, Shield, Analysis } from 'lucide-react';
+import { FileCheck, Download, ArrowRight, FileText, Shield, FileSearch } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { openRouterService, AIAnalysisResult } from '@/services/OpenRouterService';
 
@@ -545,7 +544,7 @@ ${formData.examples || "Examples of the invention in use would be described here
                   onClick={analyzeApplication}
                   disabled={isAnalyzing}
                 >
-                  <Analysis className="mr-2 h-4 w-4" />
+                  <FileSearch className="mr-2 h-4 w-4" />
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Application'}
                 </Button>
               </div>
