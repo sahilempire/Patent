@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/contexts/AppContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileCheck, Upload, Shield, Calendar, File } from 'lucide-react';
 import { 
   Sidebar, 
   SidebarContent, 
