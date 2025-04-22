@@ -13,10 +13,31 @@ export class OpenRouterService {
 
   async analyzeFiling(formData: any): Promise<AIAnalysisResult> {
     if (!this.apiKey) {
-      throw new Error('OpenRouter API key not found');
+      throw new Error('OpenRouter API key not found. Please set it in your account settings.');
     }
 
     try {
+      // Prepare a simplified version of the form data for analysis
+      const filingType = formData.filingType || 
+        (formData.markName ? 'trademark' : 'patent');
+      
+      const simplifiedData = {
+        filingType,
+        ...(filingType === 'trademark' ? {
+          markName: formData.markName,
+          applicantName: formData.applicantName,
+          markType: formData.markType,
+          goodsServices: formData.goodsServices,
+          hasUsageEvidence: !!formData.usageEvidence
+        } : {
+          title: formData.title,
+          inventorCount: formData.inventors?.length || 0,
+          descriptionLength: formData.description?.length || 0,
+          claimCount: formData.claims?.length || 0,
+          hasPriorArt: formData.priorArtReferences?.length > 0
+        })
+      };
+
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -33,7 +54,7 @@ export class OpenRouterService {
             },
             {
               role: 'user',
-              content: `Please analyze this ${formData.filingType} application: ${JSON.stringify(formData)}`
+              content: `Please analyze this ${simplifiedData.filingType} application: ${JSON.stringify(simplifiedData)}`
             }
           ]
         })
@@ -60,7 +81,7 @@ export class OpenRouterService {
       
       return {
         probability,
-        feedback: feedback.length > 0 ? feedback : ['No specific feedback provided']
+        feedback: feedback.length > 0 ? feedback : ['No specific feedback provided by AI analysis.']
       };
     } catch (error) {
       console.error('OpenRouter analysis error:', error);

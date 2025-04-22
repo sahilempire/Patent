@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Check, Plus, Search, X } from 'lucide-react';
+import { AlertCircle, Check, Plus, Search, X, FileText, InfoIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -17,6 +17,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 
 interface GoodsService {
   id: string;
@@ -24,10 +41,12 @@ interface GoodsService {
   class: string;
 }
 
-// Simplified Nice Classification examples
+// Nice Classification categories
 const niceClassifications = [
   { id: "1", name: "Class 1", description: "Chemicals" },
   { id: "9", name: "Class 9", description: "Computer hardware and software" },
+  { id: "16", name: "Class 16", description: "Paper goods and printed materials" },
+  { id: "25", name: "Class 25", description: "Clothing" },
   { id: "35", name: "Class 35", description: "Advertising and business" },
   { id: "36", name: "Class 36", description: "Insurance and financial services" },
   { id: "38", name: "Class 38", description: "Telecommunications" },
@@ -39,16 +58,22 @@ const niceClassifications = [
 const TrademarkGoodsServices: React.FC = () => {
   const { formData, updateFormData } = useAppContext();
   const { toast } = useToast();
-  const [description, setDescription] = useState('');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [businessDescription, setBusinessDescription] = useState(formData.businessDescription || '');
   const [showClassSuggestions, setShowClassSuggestions] = useState(false);
+  const [businessDescription, setBusinessDescription] = useState(formData.businessDescription || '');
 
   // Initialize goods/services array if it doesn't exist in formData
   const goodsServices: GoodsService[] = formData.goodsServices || [];
 
-  const handleAddItem = () => {
-    if (!description.trim()) {
+  // Create form
+  const form = useForm({
+    defaultValues: {
+      description: '',
+      class: '',
+    },
+  });
+
+  const handleSubmit = form.handleSubmit((data) => {
+    if (!data.description.trim()) {
       toast({
         title: "Missing description",
         description: "Please enter a description of your goods or services",
@@ -57,7 +82,7 @@ const TrademarkGoodsServices: React.FC = () => {
       return;
     }
 
-    if (!selectedClass) {
+    if (!data.class) {
       toast({
         title: "Missing class",
         description: "Please select an appropriate Nice Classification",
@@ -68,22 +93,21 @@ const TrademarkGoodsServices: React.FC = () => {
 
     const newItem: GoodsService = {
       id: Date.now().toString(),
-      description: description,
-      class: selectedClass,
+      description: data.description,
+      class: data.class,
     };
 
     const updatedItems = [...goodsServices, newItem];
     updateFormData({ goodsServices: updatedItems });
 
-    // Reset input fields
-    setDescription('');
-    setSelectedClass('');
+    // Reset form
+    form.reset();
 
     toast({
       title: "Item added",
       description: "The goods/services item has been added",
     });
-  };
+  });
 
   const handleRemoveItem = (id: string) => {
     const updatedItems = goodsServices.filter(item => item.id !== id);
@@ -171,47 +195,71 @@ const TrademarkGoodsServices: React.FC = () => {
   };
 
   const useSuggestion = (classId: string, suggestion: string) => {
-    setDescription(suggestion);
-    setSelectedClass(classId);
+    form.setValue('description', suggestion);
+    form.setValue('class', classId);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <Label htmlFor="businessDescription">Describe Your Business</Label>
-        <Textarea
-          id="businessDescription"
-          placeholder="Describe the nature of your business, products, or services in detail"
-          rows={4}
-          value={businessDescription}
-          onChange={(e) => setBusinessDescription(e.target.value)}
-        />
-        <Button onClick={handleSaveBusinessDescription}>
-          <Search className="h-4 w-4 mr-2" /> Analyze & Get Suggestions
-        </Button>
-      </div>
+    <div className="space-y-8">
+      {/* Business Description Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-5 w-5" /> Business Description
+          </CardTitle>
+          <CardDescription>
+            Tell us about your business to help identify the appropriate trademark classes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="businessDescription">
+                Describe your business, products, or services
+              </Label>
+              <Textarea
+                id="businessDescription"
+                placeholder="e.g., We develop mobile applications for fitness tracking and provide online coaching services"
+                rows={4}
+                value={businessDescription}
+                onChange={(e) => setBusinessDescription(e.target.value)}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Include detailed information about what you sell or provide to customers
+              </p>
+            </div>
+            <Button onClick={handleSaveBusinessDescription} className="w-full sm:w-auto">
+              <Search className="h-4 w-4 mr-2" /> Analyze & Get Suggestions
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* AI Suggestions Section */}
       {showClassSuggestions && formData.classSuggestions && (
-        <Card>
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
-            <CardTitle className="text-lg">Suggested Nice Classifications</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Check className="h-5 w-5 text-primary" /> Suggested Classifications
+            </CardTitle>
             <CardDescription>
-              Based on your business description, here are recommended classifications
+              Based on your business description, we recommend these trademark classes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               {formData.classSuggestions.map((suggestion: any, index: number) => (
-                <div key={index} className="border rounded-md p-4">
+                <div key={index} className="border rounded-lg p-4 bg-card">
                   <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <Badge className="mb-2">Class {suggestion.class}</Badge>
+                    <div className="space-y-1">
+                      <Badge className="mb-1">Nice Class {suggestion.class}</Badge>
                       <Badge variant={
                         suggestion.confidence === "High" ? "default" : 
                         suggestion.confidence === "Medium" ? "secondary" : 
                         "outline"
-                      } className="ml-2">
-                        {suggestion.confidence} Confidence
+                      } className="ml-1">
+                        {suggestion.confidence} Match
                       </Badge>
                     </div>
                     <Button
@@ -222,7 +270,7 @@ const TrademarkGoodsServices: React.FC = () => {
                       <Plus className="h-4 w-4 mr-1" /> Use
                     </Button>
                   </div>
-                  <p className="text-sm">{suggestion.suggestion}</p>
+                  <p className="text-sm mt-2">{suggestion.suggestion}</p>
                 </div>
               ))}
             </div>
@@ -230,89 +278,174 @@ const TrademarkGoodsServices: React.FC = () => {
         </Card>
       )}
 
+      {/* Add Goods & Services Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Add Goods & Services</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Plus className="h-5 w-5" /> Add Goods & Services
+          </CardTitle>
           <CardDescription>
             Specify the exact goods and services for which you're seeking trademark protection
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-4 mb-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                <div className="md:col-span-4">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe specific goods or services covered by your trademark"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="h-20"
+          <Form {...form}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-6">
+                <div className="sm:col-span-4">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Description
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <InfoIcon className="h-4 w-4 ml-1 inline-block text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-md">
+                                <p>Be specific about the exact goods or services you offer. For example, "Computer software for project management" is better than just "Software".</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Describe specific goods or services covered by your trademark"
+                            className="resize-none min-h-20"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Clearly describe what you provide to customers
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="class">Nice Class</Label>
-                  <Select 
-                    value={selectedClass} 
-                    onValueChange={setSelectedClass}
-                  >
-                    <SelectTrigger className="h-20">
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {niceClassifications.map(cls => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name}: {cls.description}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="sm:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="class"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Nice Class
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <InfoIcon className="h-4 w-4 ml-1 inline-block text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Select the international classification that best matches your goods or services.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select class" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {niceClassifications.map(cls => (
+                              <SelectItem key={cls.id} value={cls.id}>
+                                Class {cls.id}: {cls.description}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          International classification category
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
-              <Button onClick={handleAddItem} className="w-full">
-                <Plus className="h-4 w-4 mr-2" /> Add Item
+              <Button type="submit" className="w-full">
+                <Plus className="h-4 w-4 mr-2" /> Add to Your Application
               </Button>
-            </div>
-
-            {goodsServices.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-24">Class</TableHead>
-                    <TableHead className="w-16"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {goodsServices.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell>
-                        <Badge>{item.class}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground flex flex-col items-center">
-                <AlertCircle className="h-6 w-6 mb-2" />
-                <p>No goods or services added yet</p>
-                <p className="text-sm">Add at least one item to continue</p>
-              </div>
-            )}
-          </div>
+            </form>
+          </Form>
         </CardContent>
+      </Card>
+
+      {/* Added Items List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Your Goods & Services</CardTitle>
+          <CardDescription>
+            Items you've added to your trademark application
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {goodsServices.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-24">Class</TableHead>
+                  <TableHead className="w-16 text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {goodsServices.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="align-top">{item.description}</TableCell>
+                    <TableCell className="align-top">
+                      <Badge>Class {item.class}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right align-top">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground flex flex-col items-center border rounded-lg bg-muted/20">
+              <AlertCircle className="h-8 w-8 mb-2 text-muted-foreground/70" />
+              <p className="font-medium">No goods or services added yet</p>
+              <p className="text-sm mt-1">Add at least one item to continue with your application</p>
+            </div>
+          )}
+        </CardContent>
+        {goodsServices.length > 0 && (
+          <CardFooter className="border-t px-6 py-4 bg-muted/10">
+            <div className="w-full flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{goodsServices.length}</span> item(s) added to your application
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Badge variant="outline" className="mr-2">
+                        {new Set(goodsServices.map(item => item.class)).size} Classes
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Number of different Nice Classification classes in your application.</p>
+                    <p className="text-xs mt-1">Note: Additional classes may incur extra filing fees.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );

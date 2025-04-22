@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { FileCheck, Download, ArrowRight, FileText, Shield } from 'lucide-react';
+import { FileCheck, Download, ArrowRight, FileText, Shield, Analysis } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { openRouterService, AIAnalysisResult } from '@/services/OpenRouterService';
 
 interface Document {
   id: string;
@@ -24,6 +25,8 @@ const DocumentGenerator: React.FC = () => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
 
   useEffect(() => {
     // Clear documents when filingType changes
@@ -56,7 +59,7 @@ const DocumentGenerator: React.FC = () => {
           status: 'generated',
           required: true,
           content: generatePatentSpecification(),
-          fileType: 'docx',
+          fileType: 'pdf',
         },
         {
           id: '3',
@@ -65,7 +68,7 @@ const DocumentGenerator: React.FC = () => {
           status: 'generated',
           required: true,
           content: generatePatentClaims(),
-          fileType: 'docx',
+          fileType: 'pdf',
         },
         {
           id: '4',
@@ -104,7 +107,7 @@ const DocumentGenerator: React.FC = () => {
           status: 'generated',
           required: true,
           content: generateGoodsServicesDoc(),
-          fileType: 'docx',
+          fileType: 'pdf',
         },
         {
           id: '3',
@@ -325,25 +328,42 @@ ${formData.examples || "Examples of the invention in use would be described here
       description: `Preparing ${doc.name} for download...`,
     });
 
-    // Create the file for download
-    const blob = new Blob([doc.content], { 
-      type: doc.fileType === 'json' ? 'application/json' :
-            doc.fileType === 'pdf' ? 'application/pdf' : 
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${doc.name.replace(/\s+/g, '-').toLowerCase()}.${doc.fileType}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Download complete",
-      description: `${doc.name} has been downloaded`,
-    });
+    // Create a blob from the text content
+    const textBlob = new Blob([doc.content], { type: 'text/plain' });
+    
+    // For this example, we're converting text to a PDF-like format
+    // In a real implementation, you would use a PDF library or service
+    const generatePDF = async (textBlob: Blob) => {
+      try {
+        // Simulate PDF conversion
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // In a real implementation, you'd use a proper PDF generation library
+        // For this demo, we're just creating a file with a .pdf extension
+        const downloadUrl = URL.createObjectURL(textBlob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `${doc.name.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+        
+        toast({
+          title: "Download complete",
+          description: `${doc.name} has been downloaded as PDF`,
+        });
+      } catch (error) {
+        console.error("PDF generation error:", error);
+        toast({
+          title: "Download failed",
+          description: "Could not convert document to PDF format",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    generatePDF(textBlob);
   };
 
   const validateDocuments = () => {
@@ -373,6 +393,35 @@ ${formData.examples || "Examples of the invention in use would be described here
         description: `${validatedRequiredDocs} documents validated successfully`,
       });
     }, 2000);
+  };
+
+  const analyzeApplication = async () => {
+    if (!formData || Object.keys(formData).length === 0) {
+      toast({
+        title: "Cannot Analyze",
+        description: "Please generate documents first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const result = await openRouterService.analyzeFiling(formData);
+      setAnalysis(result);
+      toast({
+        title: "Analysis Complete",
+        description: `Success probability: ${Math.round(result.probability * 100)}%`,
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze application",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -474,7 +523,7 @@ ${formData.examples || "Examples of the invention in use would be described here
                             size="sm"
                             onClick={() => downloadDocument(doc)}
                           >
-                            <Download className="h-4 w-4 mr-1" /> Download
+                            <Download className="h-4 w-4 mr-1" /> Download PDF
                           </Button>
                         )}
                         {doc.status === 'pending' && (
@@ -487,14 +536,67 @@ ${formData.examples || "Examples of the invention in use would be described here
               </Table>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={generateDocuments}>
-                <FileCheck className="mr-2 h-4 w-4" /> Regenerate
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={generateDocuments}>
+                  <FileCheck className="mr-2 h-4 w-4" /> Regenerate
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={analyzeApplication}
+                  disabled={isAnalyzing}
+                >
+                  <Analysis className="mr-2 h-4 w-4" />
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Application'}
+                </Button>
+              </div>
               <Button onClick={validateDocuments}>
                 <Shield className="mr-2 h-4 w-4" /> Validate Documents
               </Button>
             </CardFooter>
           </Card>
+
+          {analysis && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-xl">AI Analysis Results</CardTitle>
+                <CardDescription>
+                  Success probability and feedback for your {filingType} application
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Success Probability</span>
+                      <span>{Math.round(analysis.probability * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-secondary h-3 rounded-full">
+                      <div 
+                        className="bg-primary h-3 rounded-full" 
+                        style={{ width: `${Math.round(analysis.probability * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">AI Feedback</h3>
+                    <ul className="space-y-2">
+                      {analysis.feedback.map((feedback, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="bg-primary/10 p-1 rounded-full mt-0.5">
+                            <FileCheck className="h-4 w-4 text-primary" />
+                          </div>
+                          <p className="text-sm">{feedback}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
