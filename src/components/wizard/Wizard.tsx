@@ -1,9 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Download, FileCheck } from 'lucide-react';
+import { openRouterService, AIAnalysisResult } from '@/services/OpenRouterService';
+import { useToast } from '@/hooks/use-toast';
 import PatentBasicInfo from './patent/PatentBasicInfo';
 import PatentDetailedInfo from './patent/PatentDetailedInfo';
 import PatentPriorArt from './patent/PatentPriorArt';
@@ -11,7 +14,6 @@ import PatentClaims from './patent/PatentClaims';
 import TrademarkBasicInfo from './trademark/TrademarkBasicInfo';
 import TrademarkGoodsServices from './trademark/TrademarkGoodsServices';
 import TrademarkUsage from './trademark/TrademarkUsage';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 const Wizard: React.FC = () => {
@@ -25,6 +27,8 @@ const Wizard: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("step1");
+  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Define steps based on filing type
   const patentSteps = [
@@ -73,15 +77,101 @@ const Wizard: React.FC = () => {
     updateComplianceScore(score);
   };
 
+  const handleDownload = () => {
+    const fileName = `${filingType}-application-${Date.now()}.json`;
+    const fileContent = JSON.stringify(formData, null, 2);
+    const blob = new Blob([fileContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Application Downloaded",
+      description: "Your application data has been saved to your device",
+    });
+  };
+
+  const analyzeApplication = async () => {
+    if (!formData || Object.keys(formData).length === 0) {
+      toast({
+        title: "Cannot Analyze",
+        description: "Please fill out some application details first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const result = await openRouterService.analyzeFiling(formData);
+      setAnalysis(result);
+      toast({
+        title: "Analysis Complete",
+        description: `Success probability: ${Math.round(result.probability * 100)}%`,
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Failed to analyze application",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const CurrentStepComponent = steps[currentStep - 1]?.component;
 
   return (
     <div className="max-w-4xl mx-auto py-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">
-            {filingType === 'patent' ? 'Patent' : 'Trademark'} Application Wizard
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-2xl">
+              {filingType === 'patent' ? 'Patent' : 'Trademark'} Application Wizard
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={analyzeApplication}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Analyze Application'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownload}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Application
+              </Button>
+            </div>
+          </div>
+          {analysis && (
+            <div className="mt-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>Success Probability</span>
+                  <span>{Math.round(analysis.probability * 100)}%</span>
+                </div>
+                <Progress value={analysis.probability * 100} className="h-2" />
+                {analysis.feedback.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {analysis.feedback.map((feedback, index) => (
+                      <div key={index} className="text-sm text-muted-foreground">
+                        • {feedback}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} className="w-full">
