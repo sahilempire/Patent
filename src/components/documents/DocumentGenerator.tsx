@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ interface Document {
   type: string;
   status: 'pending' | 'generated' | 'validated';
   required: boolean;
+  content?: string; // Actual document content
+  fileType: 'pdf' | 'docx' | 'json';
 }
 
 const DocumentGenerator: React.FC = () => {
@@ -22,6 +24,11 @@ const DocumentGenerator: React.FC = () => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
+
+  useEffect(() => {
+    // Clear documents when filingType changes
+    setDocuments([]);
+  }, [filingType]);
 
   const generateDocuments = () => {
     setIsGenerating(true);
@@ -39,6 +46,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'USPTO Form',
           status: 'generated',
           required: true,
+          content: generatePatentApplication(),
+          fileType: 'pdf',
         },
         {
           id: '2',
@@ -46,6 +55,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'Technical Document',
           status: 'generated',
           required: true,
+          content: generatePatentSpecification(),
+          fileType: 'docx',
         },
         {
           id: '3',
@@ -53,6 +64,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'Legal Document',
           status: 'generated',
           required: true,
+          content: generatePatentClaims(),
+          fileType: 'docx',
         },
         {
           id: '4',
@@ -60,6 +73,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'USPTO Form',
           status: 'generated',
           required: true,
+          content: generateInventorDeclaration(),
+          fileType: 'pdf',
         },
         {
           id: '5',
@@ -67,6 +82,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'USPTO Form',
           status: 'pending',
           required: false,
+          content: '',
+          fileType: 'pdf',
         },
       ];
 
@@ -77,6 +94,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'USPTO Form',
           status: 'generated',
           required: true,
+          content: generateTrademarkApplication(),
+          fileType: 'pdf',
         },
         {
           id: '2',
@@ -84,6 +103,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'Legal Document',
           status: 'generated',
           required: true,
+          content: generateGoodsServicesDoc(),
+          fileType: 'docx',
         },
         {
           id: '3',
@@ -91,6 +112,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'USPTO Form',
           status: 'generated',
           required: true,
+          content: generateDeclarationOfUse(),
+          fileType: 'pdf',
         },
         {
           id: '4',
@@ -98,6 +121,8 @@ const DocumentGenerator: React.FC = () => {
           type: 'Evidence Document',
           status: 'pending',
           required: true,
+          content: '',
+          fileType: 'pdf',
         },
       ];
 
@@ -121,19 +146,204 @@ const DocumentGenerator: React.FC = () => {
     }, 3000);
   };
 
-  const downloadDocument = (docName: string) => {
+  const generatePatentApplication = () => {
+    // Create a structured JSON that mimics a filled PDF form
+    const jsonData = {
+      formType: "AIA/14",
+      title: formData.title || "Untitled Invention",
+      inventors: formData.inventors || [],
+      applicant: formData.applicantName || "",
+      correspondence: {
+        name: formData.applicantName || "",
+        address: formData.address || "",
+        city: formData.city || "",
+        state: formData.state || "",
+        zip: formData.zipCode || "",
+        country: formData.country || "US",
+        phone: formData.phone || "",
+        email: formData.email || "",
+      },
+      filingDate: new Date().toISOString(),
+      entityStatus: formData.entityStatus || "Small",
+      signature: {
+        name: formData.applicantName || "",
+        date: new Date().toLocaleDateString(),
+      }
+    };
+    
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  const generatePatentSpecification = () => {
+    return `
+TITLE: ${formData.title || "UNTITLED INVENTION"}
+
+FIELD OF THE INVENTION:
+${formData.field || "The present invention relates generally to technology, and more particularly to a new and improved system and method."}
+
+BACKGROUND:
+${formData.background || "Background information would be detailed here."}
+
+SUMMARY:
+${formData.summary || "The invention provides new and useful improvements in the field."}
+
+DETAILED DESCRIPTION:
+${formData.description || "A detailed description of the invention would appear here."}
+
+EXAMPLES:
+${formData.examples || "Examples of the invention in use would be described here."}
+    `;
+  };
+
+  const generatePatentClaims = () => {
+    let claimsText = "CLAIMS:\n\n";
+    
+    if (formData.claims && formData.claims.length > 0) {
+      formData.claims.forEach((claim: string, index: number) => {
+        claimsText += `${index + 1}. ${claim}\n\n`;
+      });
+    } else {
+      claimsText += "1. A method comprising...\n\n";
+      claimsText += "2. The method of claim 1, further comprising...\n\n";
+    }
+    
+    return claimsText;
+  };
+
+  const generateInventorDeclaration = () => {
+    const jsonData = {
+      formType: "AIA/01",
+      inventors: formData.inventors || [{
+        firstName: "",
+        lastName: "",
+        residence: "",
+        citizenship: ""
+      }],
+      invention: {
+        title: formData.title || "Untitled Invention",
+        applicationNumber: `US${new Date().getFullYear()}${Math.floor(Math.random() * 1000000)}`,
+        filingDate: new Date().toISOString()
+      },
+      declaration: {
+        text: "The above-identified individual believes they are the original inventor of a claimed invention in the application.",
+        date: new Date().toLocaleDateString()
+      },
+      signature: {
+        name: formData.inventors && formData.inventors[0] ? 
+          `${formData.inventors[0].firstName} ${formData.inventors[0].lastName}` : "",
+        date: new Date().toLocaleDateString()
+      }
+    };
+    
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  const generateTrademarkApplication = () => {
+    // Create a structured JSON that mimics a filled PDF form
+    const jsonData = {
+      formType: "TEAS Plus",
+      markType: formData.markType || "Standard Characters",
+      markName: formData.markName || "",
+      applicant: {
+        name: formData.applicantName || "",
+        entityType: formData.entityType || "Individual",
+        citizenship: formData.citizenship || "US",
+        address: formData.address || "",
+        city: formData.city || "",
+        state: formData.state || "",
+        zipCode: formData.zipCode || "",
+        email: formData.email || "",
+        phone: formData.phone || "",
+      },
+      goodsAndServices: formData.goodsServices || [],
+      usageDate: formData.usageDate || "",
+      signature: {
+        name: formData.applicantName || "",
+        date: new Date().toLocaleDateString(),
+        declaration: "The signatory believes the applicant is the owner of the trademark."
+      }
+    };
+    
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  const generateGoodsServicesDoc = () => {
+    let content = "GOODS AND SERVICES DESCRIPTION\n\n";
+    content += `Mark: ${formData.markName || "UNNAMED MARK"}\n`;
+    content += `Applicant: ${formData.applicantName || ""}\n\n`;
+    content += "CLASSIFICATION AND DESCRIPTION OF GOODS AND SERVICES:\n\n";
+    
+    if (formData.goodsServices && formData.goodsServices.length > 0) {
+      formData.goodsServices.forEach((item: any) => {
+        content += `INTERNATIONAL CLASS ${item.class}:\n`;
+        content += `${item.description}\n\n`;
+      });
+    } else {
+      content += "No goods or services specified.\n";
+    }
+    
+    return content;
+  };
+
+  const generateDeclarationOfUse = () => {
+    const jsonData = {
+      formType: "Declaration of Use",
+      mark: formData.markName || "",
+      applicant: formData.applicantName || "",
+      registrationNumber: `US${Math.floor(Math.random() * 10000000)}`,
+      goodsAndServices: formData.goodsServices || [],
+      dates: {
+        firstUse: formData.usageDate || new Date().toLocaleDateString(),
+        firstUseInCommerce: formData.usageDate || new Date().toLocaleDateString()
+      },
+      specimen: {
+        description: "The specimen shows the mark as used in commerce",
+        type: formData.usageType || "Digital Image"
+      },
+      signature: {
+        name: formData.applicantName || "",
+        title: "Owner",
+        date: new Date().toLocaleDateString()
+      }
+    };
+    
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  const downloadDocument = (doc: Document) => {
+    if (!doc.content) {
+      toast({
+        title: "Document not ready",
+        description: "This document is still pending generation",
+        variant: "destructive"
+      });
+      return;
+    }
+
     toast({
       title: "Downloading document",
-      description: `Preparing ${docName} for download...`,
+      description: `Preparing ${doc.name} for download...`,
     });
 
-    // Simulate download delay
-    setTimeout(() => {
-      toast({
-        title: "Download complete",
-        description: `${docName} has been downloaded`,
-      });
-    }, 1500);
+    // Create the file for download
+    const blob = new Blob([doc.content], { 
+      type: doc.fileType === 'json' ? 'application/json' :
+            doc.fileType === 'pdf' ? 'application/pdf' : 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${doc.name.replace(/\s+/g, '-').toLowerCase()}.${doc.fileType}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download complete",
+      description: `${doc.name} has been downloaded`,
+    });
   };
 
   const validateDocuments = () => {
@@ -262,7 +472,7 @@ const DocumentGenerator: React.FC = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => downloadDocument(doc.name)}
+                            onClick={() => downloadDocument(doc)}
                           >
                             <Download className="h-4 w-4 mr-1" /> Download
                           </Button>

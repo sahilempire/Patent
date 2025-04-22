@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileCheck } from 'lucide-react';
+import { Download, FileCheck, ArrowLeft } from 'lucide-react';
 import { openRouterService, AIAnalysisResult } from '@/services/OpenRouterService';
 import { useToast } from '@/hooks/use-toast';
 import PatentBasicInfo from './patent/PatentBasicInfo';
@@ -22,13 +23,15 @@ const Wizard: React.FC = () => {
     currentStep, 
     setCurrentStep, 
     formData,
-    updateComplianceScore
+    updateComplianceScore,
+    setFilingType
   } = useAppContext();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("step1");
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [applicationComplete, setApplicationComplete] = useState(false);
 
   // Define steps based on filing type
   const patentSteps = [
@@ -49,7 +52,26 @@ const Wizard: React.FC = () => {
   useEffect(() => {
     setActiveTab(`step${currentStep}`);
     calculateComplianceScore();
-  }, [currentStep]);
+    checkApplicationCompletion();
+  }, [currentStep, formData]);
+
+  const checkApplicationCompletion = () => {
+    // Check if all required steps have necessary data
+    if (filingType === 'patent') {
+      const hasBasicInfo = formData.title && formData.inventors?.length > 0;
+      const hasDescription = formData.description && formData.description.length > 100;
+      const hasPriorArt = true; // Optional
+      const hasClaims = formData.claims?.length > 0;
+      
+      setApplicationComplete(hasBasicInfo && hasDescription && hasClaims);
+    } else if (filingType === 'trademark') {
+      const hasBasicInfo = formData.markName && formData.applicantName;
+      const hasGoodsServices = formData.goodsServices?.length > 0;
+      const hasUsage = formData.usageEvidence || formData.usageDate;
+      
+      setApplicationComplete(hasBasicInfo && hasGoodsServices && hasUsage);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -67,6 +89,11 @@ const Wizard: React.FC = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleBackToStart = () => {
+    setFilingType(null);
+    setCurrentStep(0);
   };
 
   const calculateComplianceScore = () => {
@@ -132,17 +159,29 @@ const Wizard: React.FC = () => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">
-              {filingType === 'patent' ? 'Patent' : 'Trademark'} Application Wizard
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={analyzeApplication}
-                disabled={isAnalyzing}
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleBackToStart}
+                title="Back to start"
               >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze Application'}
+                <ArrowLeft className="h-4 w-4" />
               </Button>
+              <CardTitle className="text-2xl">
+                {filingType === 'patent' ? 'Patent' : 'Trademark'} Application Wizard
+              </CardTitle>
+            </div>
+            <div className="flex gap-2">
+              {applicationComplete && (
+                <Button
+                  variant="outline"
+                  onClick={analyzeApplication}
+                  disabled={isAnalyzing}
+                >
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Application'}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleDownload}

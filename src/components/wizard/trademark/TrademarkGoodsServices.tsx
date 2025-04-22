@@ -10,6 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Check, Plus, Search, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GoodsService {
   id: string;
@@ -246,19 +253,21 @@ const TrademarkGoodsServices: React.FC = () => {
                 </div>
                 <div>
                   <Label htmlFor="class">Nice Class</Label>
-                  <select
-                    id="class"
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full h-20 px-3 py-2 text-sm rounded-md border border-input bg-background"
+                  <Select 
+                    value={selectedClass} 
+                    onValueChange={setSelectedClass}
                   >
-                    <option value="">Select class</option>
-                    {niceClassifications.map(cls => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}: {cls.description}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="h-20">
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niceClassifications.map(cls => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name}: {cls.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Button onClick={handleAddItem} className="w-full">
