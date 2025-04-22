@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -8,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Check, Shield, Search } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, Shield, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface RequirementItem {
@@ -28,6 +29,7 @@ interface ComplianceReport {
 const ComplianceChecker: React.FC = () => {
   const { filingType, formData, complianceScore, updateComplianceScore } = useAppContext();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(false);
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [activeTab, setActiveTab] = useState('uspto');
@@ -252,11 +254,28 @@ const ComplianceChecker: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Compliance Checker</h1>
-        <p className="text-muted-foreground">
-          Verify your {filingType} application against official filing requirements
-        </p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mb-4"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold mb-2">Compliance Checker</h1>
+          <p className="text-muted-foreground">
+            Verify your {filingType} application against official filing requirements
+          </p>
+        </div>
+        {report && (
+          <div className="text-center">
+            <div className="text-2xl font-bold mb-1">{report.overallScore}%</div>
+            <Progress value={report.overallScore} className="h-2 w-24" />
+          </div>
+        )}
       </div>
 
       {!report ? (

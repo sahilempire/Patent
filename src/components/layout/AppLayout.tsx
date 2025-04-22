@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAppContext } from '@/contexts/AppContext';
-import { ArrowLeft, FileCheck, Upload, Shield, Calendar, File } from 'lucide-react';
+import { ArrowLeft, FileCheck, Upload, Shield, Calendar, File, ChevronRight } from 'lucide-react';
 import { 
   Sidebar, 
   SidebarContent, 
@@ -29,34 +29,44 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { filingType, complianceScore } = useAppContext();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const navigationItems = [
     {
       title: 'Document Wizard',
       icon: File,
       url: '/wizard',
+      description: 'Create your filing application',
     },
     {
       title: 'Generated Docs',
       icon: FileCheck,
       url: '/documents',
+      description: 'Review and download documents',
     },
     {
       title: 'Uploads',
       icon: Upload,
       url: '/uploads',
+      description: 'Upload supporting materials',
     },
     {
       title: 'Compliance',
       icon: Shield,
       url: '/compliance',
+      description: 'Check filing compliance',
     },
     {
       title: 'Filing Prep',
       icon: Calendar,
       url: '/filing',
+      description: 'Prepare for final submission',
     },
   ];
+
+  // Find the current step index
+  const currentIndex = navigationItems.findIndex(item => item.url === location.pathname);
+  const nextItem = currentIndex < navigationItems.length - 1 ? navigationItems[currentIndex + 1] : null;
 
   return (
     <SidebarProvider>
@@ -81,15 +91,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             </SidebarHeader>
             <SidebarContent>
               <SidebarGroup>
-                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                <SidebarGroupLabel>Filing Process</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {navigationItems.map((item) => (
+                    {navigationItems.map((item, index) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild>
-                          <Link to={item.url} className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
+                          <Link 
+                            to={item.url} 
+                            className={`flex items-center gap-2 ${location.pathname === item.url ? 'text-primary font-medium' : ''}`}
+                          >
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium">
+                              {index + 1}
+                            </div>
+                            <div className="flex flex-col">
+                              <span>{item.title}</span>
+                              <span className="text-xs text-muted-foreground">{item.description}</span>
+                            </div>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -102,7 +120,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         )}
         <main className="flex-1 p-6">
           <div className="container mx-auto">
-            {filingType && (
+            {filingType && currentIndex !== -1 && (
               <div className="mb-6">
                 <Button
                   variant="ghost"
@@ -112,6 +130,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
                 </Button>
+                
+                <div className="flex items-center mb-6">
+                  {navigationItems.map((item, index) => (
+                    <React.Fragment key={item.title}>
+                      <Link to={item.url} className={`text-sm ${location.pathname === item.url ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                        {item.title}
+                      </Link>
+                      {index < navigationItems.length - 1 && (
+                        <ChevronRight className="h-4 w-4 mx-2 text-muted-foreground" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
             )}
             {!filingType ? (
@@ -124,6 +155,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <>
                 <SidebarTrigger className="mb-4 md:hidden" />
                 {children}
+                
+                {nextItem && currentIndex !== navigationItems.length - 1 && (
+                  <div className="mt-8 flex justify-end">
+                    <Button onClick={() => navigate(nextItem.url)}>
+                      Continue to {nextItem.title} <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -134,4 +173,3 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 };
 
 export default AppLayout;
-

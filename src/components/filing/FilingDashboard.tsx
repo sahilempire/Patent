@@ -1,375 +1,308 @@
 
 import React, { useState } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Check, Calendar, Plus, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { FileCheck, Calendar, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
-interface ChecklistItem {
-  id: string;
-  label: string;
-  status: 'complete' | 'incomplete';
-  routePath?: string;
-}
-
 const FilingDashboard: React.FC = () => {
-  const { filingType, formData, complianceScore } = useAppContext();
+  const { filingType, complianceScore, formData } = useAppContext();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [activeTab, setActiveTab] = useState('readiness');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 
-  // Define checklist items based on filing type
-  const getChecklist = (): ChecklistItem[] => {
-    if (filingType === 'patent') {
-      return [
-        {
-          id: '1',
-          label: 'Complete application information',
-          status: Object.keys(formData).length > 5 ? 'complete' : 'incomplete',
-          routePath: '/wizard',
-        },
-        {
-          id: '2',
-          label: 'Add technical drawings',
-          status: formData.drawingLabel1 ? 'complete' : 'incomplete',
-          routePath: '/uploads',
-        },
-        {
-          id: '3',
-          label: 'Write patent claims',
-          status: (formData.claims && formData.claims.length > 0) ? 'complete' : 'incomplete',
-          routePath: '/wizard',
-        },
-        {
-          id: '4',
-          label: 'Generate filing documents',
-          status: 'incomplete',
-          routePath: '/documents',
-        },
-        {
-          id: '5',
-          label: 'Verify compliance',
-          status: complianceScore >= 80 ? 'complete' : 'incomplete',
-          routePath: '/compliance',
-        },
-      ];
-    } else {
-      return [
-        {
-          id: '1',
-          label: 'Complete trademark details',
-          status: formData.markName ? 'complete' : 'incomplete',
-          routePath: '/wizard',
-        },
-        {
-          id: '2',
-          label: 'Add goods and services',
-          status: (formData.goodsServices && formData.goodsServices.length > 0) ? 'complete' : 'incomplete',
-          routePath: '/wizard',
-        },
-        {
-          id: '3',
-          label: 'Upload specimens of use',
-          status: (formData.specimenWebsite || formData.specimenProduct) ? 'complete' : 'incomplete',
-          routePath: '/uploads',
-        },
-        {
-          id: '4',
-          label: 'Generate filing documents',
-          status: 'incomplete',
-          routePath: '/documents',
-        },
-        {
-          id: '5',
-          label: 'Verify compliance',
-          status: complianceScore >= 80 ? 'complete' : 'incomplete',
-          routePath: '/compliance',
-        },
-      ];
+  const isApplicationComplete = complianceScore >= 80;
+
+  const checklistItems = [
+    {
+      title: 'Complete Application Form',
+      description: 'All required application fields completed',
+      status: formData && Object.keys(formData).length > 5 ? 'complete' : 'incomplete',
+      path: '/wizard'
+    },
+    {
+      title: 'Generate Official Documents',
+      description: 'Create and review all required filing documents',
+      status: true ? 'complete' : 'incomplete',
+      path: '/documents'
+    },
+    {
+      title: 'Upload Supporting Materials',
+      description: 'Attach required drawings or specimens',
+      status: true ? 'complete' : 'incomplete',
+      path: '/uploads'
+    },
+    {
+      title: 'Complete Compliance Check',
+      description: 'Verify application meets filing requirements',
+      status: complianceScore > 0 ? 'complete' : 'incomplete',
+      path: '/compliance'
     }
-  };
+  ];
 
-  const checklist = getChecklist();
-  const completedItems = checklist.filter(item => item.status === 'complete').length;
-  const completionPercentage = Math.round((completedItems / checklist.length) * 100);
-
-  const handleInvite = () => {
-    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const runAiAnalysis = () => {
+    setIsAnalyzing(true);
     toast({
-      title: "Invitation sent",
-      description: `Collaboration invitation sent to ${inviteEmail}`,
+      title: "AI Analysis in Progress",
+      description: "Analyzing your application details..."
     });
+
+    // Simulate AI analysis with timeout
+    setTimeout(() => {
+      const analysis = generateMockAnalysis();
+      setAiAnalysis(analysis);
+      setIsAnalyzing(false);
+      
+      toast({
+        title: "AI Analysis Complete",
+        description: "Your filing readiness has been evaluated"
+      });
+    }, 2500);
+  };
+
+  const generateMockAnalysis = () => {
+    const filingTypeText = filingType === 'patent' ? 
+      'patent application' : 'trademark registration';
     
-    setInviteEmail('');
+    if (complianceScore >= 80) {
+      return `Based on our analysis, your ${filingTypeText} application appears to be in good shape for filing. The application demonstrates a clear description of the ${filingType === 'patent' ? 'invention' : 'mark'} and meets the core requirements for submission. For optimal results, we recommend having an IP attorney review the final documents before filing.`;
+    } else if (complianceScore >= 50) {
+      return `Your ${filingTypeText} application requires some improvements before filing. Our analysis indicates that you need to provide more details in the ${filingType === 'patent' ? 'claims section' : 'goods and services description'}. Addressing these issues will significantly improve your chances of successful registration.`;
+    } else {
+      return `Your ${filingTypeText} application is not yet ready for submission. Several critical elements are missing or incomplete, including ${filingType === 'patent' ? 'inventor details and clear claims' : 'precise mark description and specimens'}. We recommend returning to the Document Wizard to complete these sections.`;
+    }
   };
-
-  const navigateTo = (path: string) => {
-    window.location.href = path;
-  };
-
-  const determineFilingStatus = () => {
-    if (completionPercentage < 40) return 'early';
-    if (completionPercentage < 80) return 'in-progress';
-    return 'ready';
-  };
-
-  const filingStatus = determineFilingStatus();
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Filing Dashboard</h1>
-        <p className="text-muted-foreground">
-          Track progress and prepare your {filingType} application for submission
-        </p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mb-4"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold mb-2">Filing Preparation</h1>
+          <p className="text-muted-foreground">
+            Prepare your {filingType} application for final submission
+          </p>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-1">{complianceScore}%</div>
+          <Progress value={complianceScore} className="h-2 w-24" />
+        </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-2">
-          <Card className="mb-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="readiness">Filing Readiness</TabsTrigger>
+          <TabsTrigger value="ai">AI Analysis</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="readiness">
+          <Card>
             <CardHeader>
-              <div className="flex justify-between items-center flex-wrap gap-4">
-                <div>
-                  <CardTitle className="text-xl">Filing Checklist</CardTitle>
-                  <CardDescription>
-                    Track your progress through the filing process
-                  </CardDescription>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">{completionPercentage}%</div>
-                  <Progress value={completionPercentage} className="h-2 w-24" />
-                </div>
-              </div>
+              <CardTitle>Filing Checklist</CardTitle>
+              <CardDescription>
+                Complete all required steps before submitting your {filingType} application
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {checklist.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        item.status === 'complete' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                        {item.status === 'complete' ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Plus className="h-4 w-4" />
+              <div className="space-y-6">
+                {checklistItems.map((item, index) => (
+                  <div key={index} className="flex items-start gap-4">
+                    <div className={`p-2 rounded-full ${
+                      item.status === 'complete' ? 'bg-green-100' : 'bg-amber-100'
+                    }`}>
+                      {item.status === 'complete' ? (
+                        <Check className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">{item.title}</h3>
+                        {item.status !== 'complete' && (
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            onClick={() => navigate(item.path)}
+                            className="p-0 h-auto text-primary"
+                          >
+                            Complete
+                          </Button>
                         )}
                       </div>
-                      <span className={item.status === 'complete' ? 'text-muted-foreground' : ''}>
-                        {item.label}
-                      </span>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
-                    {item.routePath && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => navigateTo(item.routePath!)}
-                      >
-                        {item.status === 'complete' ? 'View' : 'Complete'}
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>
             </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Filing Timeline</CardTitle>
-              <CardDescription>
-                Estimated timeline for your {filingType} application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative pl-8 space-y-8 before:absolute before:inset-y-0 before:left-4 before:w-0.5 before:bg-gray-200">
-                <div className="relative">
-                  <div className="absolute -left-8 mt-1.5 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                    <Calendar className="h-3.5 w-3.5 text-white" />
-                  </div>
-                  <Badge variant="secondary" className="mb-2">Current Step</Badge>
-                  <h3 className="text-lg font-medium">Application Preparation</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Completing required forms and gathering supporting documents
+            <CardFooter className="flex-col gap-4">
+              <Separator />
+              <div className="w-full flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">Overall Filing Readiness</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isApplicationComplete 
+                      ? 'Your application appears ready for filing' 
+                      : 'Complete all checklist items before filing'}
                   </p>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute -left-8 mt-1.5 h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                  </div>
-                  <h3 className="text-lg font-medium">Official Filing</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Submission to {filingType === 'patent' ? 'USPTO' : 'Trademark Office'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Estimated: When preparation is complete
-                  </p>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute -left-8 mt-1.5 h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                  </div>
-                  <h3 className="text-lg font-medium">Office Action Response</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Addressing any examination issues
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Estimated: 3-6 months after filing
-                  </p>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute -left-8 mt-1.5 h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                  </div>
-                  <h3 className="text-lg font-medium">
-                    {filingType === 'patent' ? 'Patent Grant' : 'Trademark Registration'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Official protection granted
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Estimated: {filingType === 'patent' ? '18-24 months' : '9-12 months'} after filing
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Filing Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {filingStatus === 'ready' ? (
-                <div className="rounded-md bg-green-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <Check className="h-5 w-5 text-green-400" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800">Ready to File</h3>
-                      <div className="mt-2 text-sm text-green-700">
-                        <p>Your application is ready for submission. Review the generated documents before proceeding.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : filingStatus === 'in-progress' ? (
-                <div className="rounded-md bg-blue-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <Calendar className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">In Progress</h3>
-                      <div className="mt-2 text-sm text-blue-700">
-                        <p>Continue working through the checklist to complete your application.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-md bg-amber-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertCircle className="h-5 w-5 text-amber-400" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-amber-800">Just Started</h3>
-                      <div className="mt-2 text-sm text-amber-700">
-                        <p>You've just begun the application process. Complete the initial steps to progress.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Separator className="my-4" />
-
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span>Overall Progress</span>
-                  <span>{completionPercentage}%</span>
-                </div>
-                <Progress value={completionPercentage} className="h-2" />
-                
-                <div className="flex justify-between text-sm">
-                  <span>Compliance Score</span>
-                  <span>{complianceScore}%</span>
-                </div>
-                <Progress value={complianceScore} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Invite Collaborator</CardTitle>
-              <CardDescription>
-                Invite a legal expert to review your application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="colleague@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
                 </div>
                 <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={handleInvite}
+                  disabled={!isApplicationComplete} 
+                  className="ml-auto"
                 >
-                  <Mail className="mr-2 h-4 w-4" /> Send Invitation
+                  <FileCheck className="mr-2 h-4 w-4" />
+                  Prepare Filing Package
                 </Button>
               </div>
-            </CardContent>
+            </CardFooter>
           </Card>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Filing Fees</AlertTitle>
-            <AlertDescription className="text-sm">
-              {filingType === 'patent' ? (
-                <p>USPTO filing fees for a patent application range from $75-$300 depending on entity size.</p>
+        </TabsContent>
+        
+        <TabsContent value="ai">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Filing Assessment</CardTitle>
+              <CardDescription>
+                Get an AI-powered analysis of your application's filing readiness
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!aiAnalysis ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <FileCheck className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-center text-muted-foreground mb-8 max-w-md">
+                    Our AI can analyze your complete application and provide insights
+                    on its filing readiness and potential areas for improvement.
+                  </p>
+                  <Button 
+                    onClick={runAiAnalysis} 
+                    disabled={isAnalyzing || complianceScore === 0}
+                  >
+                    {isAnalyzing ? "Analyzing..." : "Run AI Analysis"}
+                  </Button>
+                  {complianceScore === 0 && (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Please complete a compliance check first
+                    </p>
+                  )}
+                </div>
               ) : (
-                <p>USPTO filing fees for a trademark application range from $250-$350 per class.</p>
+                <div className="py-4">
+                  <div className="px-4 py-3 bg-muted rounded-lg mb-4">
+                    <h3 className="font-medium mb-2">AI Assessment Results</h3>
+                    <p className="text-sm">{aiAnalysis}</p>
+                  </div>
+                  
+                  <div className="space-y-4 mt-6">
+                    <h3 className="font-medium">Recommended Actions</h3>
+                    <ul className="space-y-2">
+                      {complianceScore < 100 && (
+                        <li className="flex items-start gap-2">
+                          <div className="bg-blue-100 p-1 rounded-full mt-0.5">
+                            <Check className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span>
+                            {complianceScore < 80 
+                              ? "Address critical issues found in the compliance check" 
+                              : "Consider addressing any remaining warnings in the compliance report"}
+                          </span>
+                        </li>
+                      )}
+                      <li className="flex items-start gap-2">
+                        <div className="bg-blue-100 p-1 rounded-full mt-0.5">
+                          <Check className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span>
+                          Review all generated documents for accuracy and completeness
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="bg-blue-100 p-1 rounded-full mt-0.5">
+                          <Check className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span>
+                          Consider consulting with an IP professional before final submission
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               )}
-            </AlertDescription>
-          </Alert>
+            </CardContent>
+            <CardFooter>
+              {aiAnalysis && (
+                <Button 
+                  variant="outline" 
+                  onClick={runAiAnalysis}
+                  disabled={isAnalyzing}
+                  className="w-full"
+                >
+                  Rerun Analysis
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-          {filingStatus === 'ready' && (
-            <Button className="w-full">
-              Proceed to File <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Filing Calendar</CardTitle>
+          <CardDescription>Important dates for your {filingType} application</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Estimated Filing Date</p>
+                  <p className="text-sm text-muted-foreground">When your application will be submitted</p>
+                </div>
+              </div>
+              <p className="font-medium">{new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Estimated First Office Action</p>
+                  <p className="text-sm text-muted-foreground">Initial review by the patent office</p>
+                </div>
+              </div>
+              <p className="font-medium">{filingType === 'patent' ? '12-18 months' : '3-4 months'}</p>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Estimated Registration Time</p>
+                  <p className="text-sm text-muted-foreground">Total time for application approval</p>
+                </div>
+              </div>
+              <p className="font-medium">{filingType === 'patent' ? '2-3 years' : '9-12 months'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
