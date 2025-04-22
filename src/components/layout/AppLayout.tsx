@@ -1,6 +1,8 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/contexts/AppContext';
+import { ArrowLeft } from 'lucide-react';
 import { 
   Sidebar, 
   SidebarContent, 
@@ -14,10 +16,11 @@ import {
   SidebarTrigger,
   SidebarHeader
 } from '@/components/ui/sidebar';
-import { File, FileCheck, Upload, Shield, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import SettingsDrawer from '../settings/SettingsDrawer';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,6 +28,7 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { filingType, complianceScore } = useAppContext();
+  const navigate = useNavigate();
 
   const navigationItems = [
     {
@@ -60,7 +64,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {filingType && (
           <Sidebar>
             <SidebarHeader className="flex flex-col items-center justify-center p-4">
-              <h1 className="text-2xl font-bold">IntelliFile</h1>
+              <div className="flex w-full justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">IntelliFile</h1>
+                <SettingsDrawer />
+              </div>
               <Badge className="mt-2" variant={filingType === 'patent' ? 'default' : 'secondary'}>
                 {filingType === 'patent' ? 'Patent' : 'Trademark'} Filing
               </Badge>
@@ -95,14 +102,25 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         )}
         <main className="flex-1 p-6">
           <div className="container mx-auto">
-            {!filingType && (
+            {filingType && (
+              <div className="mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(-1)}
+                  className="mb-4"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </div>
+            )}
+            {!filingType ? (
               <div className="flex justify-center">
                 <div className="w-full max-w-4xl">
                   {children}
                 </div>
               </div>
-            )}
-            {filingType && (
+            ) : (
               <>
                 <SidebarTrigger className="mb-4 md:hidden" />
                 {children}
