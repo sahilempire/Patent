@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,31 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from "@/components/ui/button";
-import { validateBasicInfo } from "@/services/trademarkValidation";
-import { useToast } from "@/components/ui/use-toast";
 
-interface BasicInfo {
-  applicantName: string;
-  trademark: string;
-  filingBasis: string;
-}
-
-interface TrademarkBasicInfoProps {
-  onNext: (data: BasicInfo) => void;
-  onBack: () => void;
-  initialData?: BasicInfo;
-}
-
-const TrademarkBasicInfo = ({ onNext, onBack, initialData }: TrademarkBasicInfoProps) => {
-  const { toast } = useToast();
+const TrademarkBasicInfo: React.FC = () => {
   const { formData, updateFormData } = useAppContext();
-  const [errors, setErrors] = useState<string[]>([]);
-
-  useEffect(() => {
-    const { isValid, errors } = validateBasicInfo(formData);
-    setErrors(errors);
-  }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     updateFormData({ [e.target.name]: e.target.value });
@@ -41,76 +20,8 @@ const TrademarkBasicInfo = ({ onNext, onBack, initialData }: TrademarkBasicInfoP
     updateFormData({ [name]: value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const { isValid, errors } = validateBasicInfo(formData);
-    
-    if (!isValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    onNext(formData);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="applicantName">Applicant Name</Label>
-          <Input
-            id="applicantName"
-            name="applicantName"
-            value={formData.applicantName}
-            onChange={(e) => handleChange(e)}
-            placeholder="Enter applicant name"
-            className={errors.includes("Applicant name is required") ? "border-red-500" : ""}
-          />
-          {errors.includes("Applicant name is required") && (
-            <p className="text-sm text-red-500">Applicant name is required</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="trademark">Trademark</Label>
-          <Input
-            id="trademark"
-            name="trademark"
-            value={formData.trademark}
-            onChange={(e) => handleChange(e)}
-            placeholder="Enter trademark"
-            className={errors.includes("Trademark is required") ? "border-red-500" : ""}
-          />
-          {errors.includes("Trademark is required") && (
-            <p className="text-sm text-red-500">Trademark is required</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="filingBasis">Filing Basis</Label>
-          <Select
-            value={formData.filingBasis}
-            onValueChange={(value) => handleSelectChange('filingBasis', value)}
-          >
-            <SelectTrigger className={errors.includes("Filing basis is required") ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select filing basis" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="use_in_commerce">Use in Commerce</SelectItem>
-              <SelectItem value="intent_to_use">Intent to Use</SelectItem>
-              <SelectItem value="foreign_registration">Foreign Registration</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.includes("Filing basis is required") && (
-            <p className="text-sm text-red-500">Filing basis is required</p>
-          )}
-        </div>
-      </div>
-
+    <div className="space-y-6">
       <div className="space-y-4">
         <Label htmlFor="markName">Trademark Name</Label>
         <Input
@@ -194,6 +105,24 @@ const TrademarkBasicInfo = ({ onNext, onBack, initialData }: TrademarkBasicInfoP
         />
       </div>
 
+      <div className="space-y-4">
+        <Label htmlFor="filingBasis">Filing Basis</Label>
+        <Select 
+          value={formData.filingBasis || ''} 
+          onValueChange={(value) => handleSelectChange('filingBasis', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select filing basis" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="use">Use in Commerce (already using the mark)</SelectItem>
+            <SelectItem value="intent">Intent to Use (plan to use in the future)</SelectItem>
+            <SelectItem value="foreign">Foreign Registration</SelectItem>
+            <SelectItem value="treaty">International Treaty</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">AI Suggestion</CardTitle>
@@ -216,7 +145,7 @@ const TrademarkBasicInfo = ({ onNext, onBack, initialData }: TrademarkBasicInfoP
           )}
         </CardContent>
       </Card>
-    </form>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
@@ -71,38 +72,13 @@ const Wizard: React.FC = () => {
 
   const handleNext = () => {
     if (currentStep < steps.length) {
-      // Validate current step before proceeding
-      const currentStepData = formData[`step${currentStep}`];
-      const isValid = validateStep(currentStep, currentStepData);
-      
-      if (isValid) {
-        setCurrentStep(currentStep + 1);
-        toast({
-          title: "Progress saved",
-          description: `Moving to step ${currentStep + 1}`,
-        });
-      } else {
-        toast({
-          title: "Validation Error",
-          description: "Please fill in all required fields before proceeding",
-          variant: "destructive",
-        });
-      }
+      setCurrentStep(currentStep + 1);
+      toast({
+        title: "Progress saved",
+        description: `Moving to step ${currentStep + 1}`,
+      });
     } else {
       navigate('/documents');
-    }
-  };
-
-  const validateStep = (step: number, data: any) => {
-    switch (step) {
-      case 1: // Basic Info
-        return data?.applicantName && data?.trademark && data?.filingBasis;
-      case 2: // Goods & Services
-        return data?.description && data?.class;
-      case 3: // Usage Evidence
-        return data?.firstUseDate && data?.specimenDescription;
-      default:
-        return true;
     }
   };
 
@@ -211,10 +187,7 @@ const Wizard: React.FC = () => {
           >
             Previous
           </Button>
-          <Button 
-            onClick={handleNext}
-            disabled={!validateStep(currentStep, formData[`step${currentStep}`])}
-          >
+          <Button onClick={handleNext}>
             {currentStep === steps.length ? 'Finish' : 'Next'}
           </Button>
         </CardFooter>

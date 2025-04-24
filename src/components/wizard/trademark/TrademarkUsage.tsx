@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,22 +14,8 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { validateUsageEvidence } from "@/services/trademarkValidation";
 
-interface UsageEvidence {
-  firstUseDate: string;
-  currentUseStatus: string;
-  specimenDescription: string;
-  specimenType: string;
-}
-
-interface TrademarkUsageProps {
-  onNext: (data: UsageEvidence) => void;
-  onBack: () => void;
-  initialData?: UsageEvidence;
-}
-
-const TrademarkUsage = ({ onNext, onBack, initialData }: TrademarkUsageProps) => {
+const TrademarkUsage: React.FC = () => {
   const { formData, updateFormData } = useAppContext();
   const { toast } = useToast();
   const [firstUseDate, setFirstUseDate] = useState<Date | undefined>(
@@ -37,7 +24,6 @@ const TrademarkUsage = ({ onNext, onBack, initialData }: TrademarkUsageProps) =>
   const [firstUseCommerce, setFirstUseCommerce] = useState<Date | undefined>(
     formData.firstUseCommerce ? new Date(formData.firstUseCommerce) : undefined
   );
-  const [errors, setErrors] = useState<string[]>([]);
 
   const handleDateChange = (field: 'firstUseDate' | 'firstUseCommerce', date?: Date) => {
     if (field === 'firstUseDate') {
@@ -68,29 +54,8 @@ const TrademarkUsage = ({ onNext, onBack, initialData }: TrademarkUsageProps) =>
     });
   };
 
-  useEffect(() => {
-    const { isValid, errors } = validateUsageEvidence(formData);
-    setErrors(errors);
-  }, [formData]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const { isValid, errors } = validateUsageEvidence(formData);
-    
-    if (!isValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    onNext(formData);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <Alert className="mb-6">
         <AlertTitle>Usage Information</AlertTitle>
         <AlertDescription>
@@ -186,28 +151,64 @@ const TrademarkUsage = ({ onNext, onBack, initialData }: TrademarkUsageProps) =>
         <CardHeader>
           <CardTitle className="text-lg">Specimen of Use</CardTitle>
           <CardDescription>
-            Upload a specimen showing how you use your trademark in commerce
+            You must provide specimens showing how your mark is used in commerce
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="specimen">Upload Specimen</Label>
-              <Input
-                id="specimen"
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    updateFormData({ ...formData, specimen: file });
-                  }
-                }}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="specimenWebsite" 
+                checked={formData.specimenWebsite || false}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('specimenWebsite', checked as boolean)
+                }
               />
-              <p className="text-sm text-muted-foreground">
-                Accepts images and PDF files
-              </p>
+              <Label htmlFor="specimenWebsite" className="cursor-pointer">Website screenshot</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="specimenProduct" 
+                checked={formData.specimenProduct || false}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('specimenProduct', checked as boolean)
+                }
+              />
+              <Label htmlFor="specimenProduct" className="cursor-pointer">Product or packaging photos</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="specimenAdvertising" 
+                checked={formData.specimenAdvertising || false}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('specimenAdvertising', checked as boolean)
+                }
+              />
+              <Label htmlFor="specimenAdvertising" className="cursor-pointer">Advertising materials</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="specimenReceipt" 
+                checked={formData.specimenReceipt || false}
+                onCheckedChange={(checked) => 
+                  handleCheckboxChange('specimenReceipt', checked as boolean)
+                }
+              />
+              <Label htmlFor="specimenReceipt" className="cursor-pointer">Sales receipt or invoice</Label>
+            </div>
+          </div>
+
+          <Button 
+            className="w-full mt-4" 
+            variant="outline"
+            onClick={handleUploadPrompt}
+          >
+            <Upload className="mr-2 h-4 w-4" /> Upload Specimens
+          </Button>
+
+          <div className="mt-4 text-sm text-muted-foreground">
+            <p>For services: Show the mark as used in advertising or marketing materials</p>
+            <p>For goods: Show the mark on the product, packaging, or displays</p>
           </div>
         </CardContent>
       </Card>
@@ -248,7 +249,7 @@ const TrademarkUsage = ({ onNext, onBack, initialData }: TrademarkUsageProps) =>
           </div>
         </CardContent>
       </Card>
-    </form>
+    </div>
   );
 };
 
