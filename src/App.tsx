@@ -11,6 +11,9 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Trademark from "./pages/Trademark";
 import PrivateRoute from "./components/PrivateRoute";
+import UploadPage from "./pages/Upload";
+import Review from "./pages/Review";
+import DocumentGenerator from "./pages/DocumentGenerator";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,30 @@ const App = () => (
                 element={
                   <PrivateRoute>
                     <Trademark />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/filing/upload"
+                element={
+                  <PrivateRoute>
+                    <UploadPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/filing/review"
+                element={
+                  <PrivateRoute>
+                    <Review />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/filing/generate"
+                element={
+                  <PrivateRoute>
+                    <DocumentGenerator />
                   </PrivateRoute>
                 }
               />
