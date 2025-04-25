@@ -744,7 +744,7 @@ const Trademark = () => {
                   onCheckedChange={(checked) => handleCheckboxChange("isUsingInCommerce", checked as boolean)}
                 />
                 <label htmlFor="isUsingInCommerce" className="text-sm font-medium">
-                  Are you using this mark in commerce already? *
+                  Are you using this mark in commerce already?
                 </label>
               </div>
             </div>

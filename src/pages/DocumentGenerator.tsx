@@ -3,12 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, FileText, Download, CheckCircle2, Loader2 } from "lucide-react";
+import { Info, FileText, Download, CheckCircle2, Loader2, Eye } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateDocument } from "@/services/documentService";
 import { toast } from "sonner";
 import { saveAs } from 'file-saver';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface GeneratedDocument {
   name: string;
@@ -22,6 +29,8 @@ const DocumentGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedDocuments, setGeneratedDocuments] = useState<GeneratedDocument[]>([]);
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<GeneratedDocument | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!user?.id) {
@@ -73,6 +82,20 @@ const DocumentGenerator = () => {
       toast.error("Failed to download document");
     } finally {
       setDownloadingDoc(null);
+    }
+  };
+
+  const handlePreview = (document: GeneratedDocument) => {
+    setPreviewDoc(document);
+    const url = URL.createObjectURL(document.blob);
+    setPreviewUrl(url);
+  };
+
+  const closePreview = () => {
+    setPreviewDoc(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   };
 
@@ -141,19 +164,29 @@ const DocumentGenerator = () => {
                               <FileText className="h-4 w-4 text-gray-500" />
                               <span className="text-sm">{doc.name}</span>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownload(doc)}
-                              disabled={downloadingDoc === doc.name}
-                            >
-                              {downloadingDoc === doc.name ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4 mr-2" />
-                              )}
-                              Download
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePreview(doc)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownload(doc)}
+                                disabled={downloadingDoc === doc.name}
+                              >
+                                {downloadingDoc === doc.name ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4 mr-2" />
+                                )}
+                                Download
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -197,6 +230,88 @@ const DocumentGenerator = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!previewDoc} onOpenChange={closePreview}>
+        <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <DialogHeader className="px-6 py-4 border-b">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <FileText className="h-5 w-5 text-blue-500" />
+                </motion.div>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  {previewDoc?.name}
+                </motion.span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden">
+              <AnimatePresence mode="wait">
+                {previewUrl && (
+                  <motion.div
+                    key="preview-content"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    className="h-full w-full flex flex-col"
+                  >
+                    <div className="flex-1 overflow-auto p-6">
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                      >
+                        <iframe
+                          src={previewUrl}
+                          className="w-full h-full min-h-[70vh] border rounded-lg shadow-sm"
+                          title={previewDoc?.name}
+                        />
+                      </motion.div>
+                    </div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 }}
+                      className="border-t p-4 flex justify-end gap-3"
+                    >
+                      <Button
+                        variant="outline"
+                        onClick={closePreview}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => previewDoc && handleDownload(previewDoc)}
+                        disabled={downloadingDoc === previewDoc?.name}
+                      >
+                        {downloadingDoc === previewDoc?.name ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        Download
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
